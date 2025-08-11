@@ -130,16 +130,25 @@ def fetch_crypto_prices() -> None:
 
 
 def main() -> None:
-    start, end = recent_window()
+    start, end = recent_window()  # rolling window bounds (UTC)
     for sym in EQUITIES:
+        # pull 1m bars for the date range, then trim to the exact window
         df = fetch_polygon_1m(sym, start.date().isoformat(), end.date().isoformat())
         if df.empty:
             print(f"No data returned for {sym}; skipping.")
             continue
+
+        # keep strict window (convert 'start' to the tz of the Datetime column)
         start_ny = start.astimezone(df["Datetime"].iloc[0].tz)
         df = df[df["Datetime"] >= start_ny]
+        if df.empty:
+            print(f"No rows remain after window trim for {sym}; skipping.")
+            continue
+
+        # write all requested timeframes
         save_all_timeframes(sym, df)
-        analyze_with_chatgpt(sym, df)
+
+    # write crypto spot prices (and 24h change) snapshot
     fetch_crypto_prices()
     print("Done.")
 
