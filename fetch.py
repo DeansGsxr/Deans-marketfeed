@@ -82,6 +82,9 @@ if __name__ == "__main__":
     start, end = recent_window()
     for sym in EQUITIES:
         df = fetch_polygon_1m(sym, start.date().isoformat(), end.date().isoformat())
+        if df.empty:
+            print(f"No data returned for {sym}; skipping.")
+            continue
         # keep strict window
         df = df[df["Datetime"] >= start.astimezone(df["Datetime"].dt.tz)]
         save_all_timeframes(sym, df)
