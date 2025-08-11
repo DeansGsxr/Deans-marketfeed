@@ -34,9 +34,17 @@ def fetch_polygon_1m(sym: str, start_iso: str, end_iso: str) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame(columns=["Datetime", "Open", "High", "Low", "Close", "Volume"])
     df = pd.DataFrame(rows)
+    # convert epoch ms to New York time, rename fields, and sort/dedup
     df["Datetime"] = pd.to_datetime(df["t"], unit="ms", utc=True).dt.tz_convert("America/New_York")
-    df.rename(columns={"o": "Open", "h": "High", "l": "Low", "c": "Close", "v": "Volume"}, inplace=True)
-    df = df[["Datetime", "Open", "High", "Low", "Close", "Volume"]].sort_values("Datetime").drop_duplicates("Datetime")
+    df.rename(
+        columns={"o": "Open", "h": "High", "l": "Low", "c": "Close", "v": "Volume"},
+        inplace=True,
+    )
+    df = (
+        df[["Datetime", "Open", "High", "Low", "Close", "Volume"]]
+        .sort_values("Datetime")
+        .drop_duplicates("Datetime")
+    )
     return df
 
 
