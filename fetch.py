@@ -14,7 +14,14 @@ try:
 except ModuleNotFoundError as exc:
     raise SystemExit("The 'requests' package is required to run fetch.py") from exc
 
+try:
+    import openai
+except ModuleNotFoundError as exc:
+    raise SystemExit("The 'openai' package is required to run fetch.py") from exc
+
 API_KEY = os.environ["POLYGON_API_KEY"]
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+openai.api_key = OPENAI_API_KEY
 BASE = "https://api.polygon.io/v2/aggs/ticker/{sym}/range/1/minute/{start}/{end}"
 PARAMS = {"adjusted":"true","sort":"asc","limit":50000,"apiKey":API_KEY}
 
@@ -74,6 +81,25 @@ def save_all_timeframes(sym, df):
         out = resample(df, rule)
         out.to_csv(f"{sym}_{name}.csv", index=False)
 
+def analyze_with_chatgpt(sym, df):
+    """Send the latest bar to ChatGPT and print its analysis."""
+    if df.empty:
+        return
+    latest = df.iloc[-1]
+    prompt = (
+        f"Provide a brief market summary for {sym} using the latest data "
+        f"{latest.to_dict()}"
+    )
+    try:
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        msg = resp["choices"][0]["message"]["content"].strip()
+        print(f"ChatGPT analysis for {sym}: {msg}")
+    except Exception as exc:
+        print(f"ChatGPT analysis failed for {sym}: {exc}")
+
 def fetch_crypto_prices():
     # CoinGecko free endpoint (no key). Returns price + 24h change.
     ids = ",".join(COINS.keys())
@@ -99,5 +125,6 @@ if __name__ == "__main__":
         start_ny = start.astimezone(df["Datetime"].iloc[0].tz)
         df = df[df["Datetime"] >= start_ny]
         save_all_timeframes(sym, df)
+        analyze_with_chatgpt(sym, df)
     fetch_crypto_prices()
     print("Done.")
