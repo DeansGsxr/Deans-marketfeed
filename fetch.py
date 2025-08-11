@@ -1,8 +1,18 @@
 # fetch.py — pulls SPY/QQQ 1m from Polygon, resamples to all TFs, and saves crypto prices
 # Needs repo secret: POLYGON_API_KEY
 
-import os, requests, pandas as pd
+import os
 from datetime import datetime, timedelta, timezone
+
+try:
+    import pandas as pd
+except ModuleNotFoundError as exc:
+    raise SystemExit("The 'pandas' package is required to run fetch.py") from exc
+
+try:
+    import requests
+except ModuleNotFoundError as exc:
+    raise SystemExit("The 'requests' package is required to run fetch.py") from exc
 
 API_KEY = os.environ["POLYGON_API_KEY"]
 BASE = "https://api.polygon.io/v2/aggs/ticker/{sym}/range/1/minute/{start}/{end}"
