@@ -134,6 +134,7 @@ def main() -> None:
     for sym in EQUITIES:
         df = fetch_polygon_1m(sym, start.date().isoformat(), end.date().isoformat())
         if df.empty:
+            print(f"No data returned for {sym}; skipping.")
             continue
         start_ny = start.astimezone(df["Datetime"].iloc[0].tz)
         df = df[df["Datetime"] >= start_ny]
