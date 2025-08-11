@@ -1,0 +1,31 @@
+name: publish-candles
+
+on:
+  schedule:
+    # HST 3:00, 3:30, 7:00, 10:00, 14:00  →  UTC 13:00, 13:30, 17:00, 20:00, 00:00
+    - cron: "0 13 * * 1-5"
+    - cron: "30 13 * * 1-5"
+    - cron: "0 17 * * 1-5"
+    - cron: "0 20 * * 1-5"
+    - cron: "0 0 * * 2-6"
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install requests pandas python-dateutil pytz
+      - env:
+          POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+        run: python fetch.py
+      - name: Commit CSVs
+        run: |
+          git config user.name "auto-bot"
+          git config user.email "bot@example.com"
+          git add *.csv
+          git commit -m "update data" || echo "no changes"
+          git push
