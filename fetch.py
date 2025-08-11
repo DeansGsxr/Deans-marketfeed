@@ -21,19 +21,6 @@ BASE = "https://api.polygon.io/v2/aggs/ticker/{sym}/range/1/minute/{start}/{end}
 PARAMS = {"adjusted": "true", "sort": "asc", "limit": 50000, "apiKey": API_KEY}
 
 EQUITIES = ["SPY", "QQQ"]
-COINS = {
-    "bitcoin": "BTC",
-    "ethereum": "ETH",
-    "solana": "SOL",
-    "avalanche-2": "AVAX",
-    "cardano": "ADA",
-    "aioz-network": "AIOZ",
-    "origintrail": "TRAC",
-    "superverse": "SUPER",
-    "snek": "SNEK",
-    "bertram": "BERT",
-    "pengu": "PENGU",
-}
 
 ROLLING_MINUTES = 24 * 60  # last 24h of 1m, then we resample
 
@@ -112,21 +99,6 @@ def analyze_with_chatgpt(sym: str, df: pd.DataFrame) -> None:
         print(f"ChatGPT analysis failed for {sym}: {exc}")
 
 
-def fetch_crypto_prices() -> None:
-    ids = ",".join(COINS.keys())
-    url = "https://api.coingecko.com/api/v3/simple/price"
-    params = {"ids": ids, "vs_currencies": "usd", "include_24hr_change": "true"}
-    r = requests.get(url, params=params, timeout=60)
-    r.raise_for_status()
-    data = r.json()
-    rows = []
-    for cg_id, sym in COINS.items():
-        if cg_id in data:
-            d = data[cg_id]
-            rows.append({"Symbol": sym, "PriceUSD": d.get("usd"), "Change24hPct": d.get("usd_24h_change")})
-    pd.DataFrame(rows).to_csv("CRYPTO_PRICES.csv", index=False)
-
-
 def main() -> None:
     start, end = recent_window()  # rolling window bounds (UTC)
     for sym in EQUITIES:
@@ -146,8 +118,9 @@ def main() -> None:
         # write all requested timeframes
         save_all_timeframes(sym, df)
 
-    # write crypto spot prices (and 24h change) snapshot
-    fetch_crypto_prices()
+        # analyze latest data with ChatGPT
+        analyze_with_chatgpt(sym, df)
+
     print("Done.")
 
 
