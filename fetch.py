@@ -37,7 +37,8 @@ def fetch_polygon_1m(sym, start_iso, end_iso):
     df = pd.DataFrame(rows)
     df["Datetime"] = pd.to_datetime(df["t"], unit="ms", utc=True).dt.tz_convert("America/New_York")
     df.rename(columns={"o":"Open","h":"High","l":"Low","c":"Close","v":"Volume"}, inplace=True)
-    return df[["Datetime","Open","High","Low","Close","Volume"]].sort_values("Datetime")
+    df = df[["Datetime","Open","High","Low","Close","Volume"]].sort_values("Datetime").drop_duplicates("Datetime")
+    return df
 
 def recent_window(minutes=ROLLING_MINUTES):
     end = datetime.now(timezone.utc)
@@ -82,8 +83,11 @@ if __name__ == "__main__":
     start, end = recent_window()
     for sym in EQUITIES:
         df = fetch_polygon_1m(sym, start.date().isoformat(), end.date().isoformat())
+        if df.empty:
+            continue
         # keep strict window
-        df = df[df["Datetime"] >= start.astimezone(df["Datetime"].dt.tz)]
+        start_ny = start.astimezone(df["Datetime"].iloc[0].tz)
+        df = df[df["Datetime"] >= start_ny]
         save_all_timeframes(sym, df)
     fetch_crypto_prices()
     print("Done.")
